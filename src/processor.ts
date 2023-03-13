@@ -74,6 +74,168 @@ const processor = new EvmBatchProcessor()
   });
 
 processor.run(database, async (ctx) => {
-  
+  const findOrCreateUser = async (id: string): Promise<User> => {
+    const mgr: EntityManager = await ctx.store["em"]();
+    const repo = mgr.getTreeRepository(User);
+
+    let user = repo.findOneBy(({ id }));
+    if (!user) {
+      user = new User ({id, depth: 0, directReferralsCount: 0});
+      await repo.save(user);
+
+      if (id == ROOT_ID.toString()) {
+        const packs = [...Array(LEVELS).keys()].map(
+          (level) => 
+            new Pack({
+              id: `${ROOT_ID.toString()}-${level.toString()}`,
+              level: level + 1,
+              user: user,
+              expiresAt: new Date(3318491671000),
+
+            })
+          );
+    
+        ctx.log.info("creating root user packs");
+        await ctx.store.save(packs);
+      }
+    }
+    return user;
+  }
+
+  const root = await findOrCreateUser(ROOT_ID.toString());
+  ctx.log.debug(root);
+  ctx.log.info("creating root user");
+
+  for (const block of ctx.blocks) {
+    for (const item of block.items) {
+      if (item.kind === "evmLog") {
+
+        const {evmLog, transaction} = item;
+
+        let ev: Event = new Event({
+          id: `${transaction.hash}-${evmLog.index.toString()}`,
+          createdAt: new Date(block.header.timestamp),
+        });
+
+        let user: User | null;
+
+        if (item.address === METACORE_ADDRESS) {
+
+          const marketingReferrerChanged = 
+            core.events.MarketingReferrerChanged;
+          const endPackSet = 
+            core.events.TimestampEndPackSet;
+          
+          if (
+            evmLog.topics[0] === marketingReferrerChanged.topic
+          ) {
+            const mgr: EntityManager = await ctx.store["em"]();
+            const repo = mgr.getTreeRepository(User);
+
+            const {accountId, marketingReferrer} = 
+              marketingReferrerChanged.decode(evmLog);
+
+            user = await repo.findOneBy({
+              id: accountId.toString(),
+            });
+
+            if (marketingReferrer.isZero()) {
+              if (user) {
+                const referrer = user.marketingReferrer;
+                if (referrer) {
+                  referrer.directReferralsCount--;
+                  await repo.save(referrer);
+                }
+
+                ctx.log.info(`removing user ${user.id}`);
+                await repo.remove(user);
+              }
+              continue;
+            }
+
+            if (!user) {
+              user = new User({
+                id: accountId.toString(),
+                depth: 0,
+                directReferralsCount: 0,
+              });
+            }
+
+            if (!accountId.eq(ROOT_ID)) {
+              const referrer = await findOrCreateUser(
+                marketingReferrer.toString()
+              );
+              user.marketingReferrer = referrer;
+              user.depth = referrer.depth++;
+
+              referrer.directReferralsCount++;
+              await repo.save(referrer);
+            }
+
+            ctx.log.info(`creating user ${user.id}`);
+            await repo.save(user);
+
+            ev.event = new MarketingReferrerChanged({
+              accountId: accountId.toString(),
+            });
+
+            user = new User({ id: marketingReferrer.toString() });
+          } else if (
+            evmLog.topics[0] === endPackSet.topic
+          ) {
+            const { accountId, level, timestamp } = endPackSet.decode(evmLog);
+
+            user = await findOrCreateUser(accountId.toString());
+            const pack = new Pack({
+              id: `${accountId.toString()}-${level.toString()}`,
+              level: Number(level),
+              user,
+              // TODO Почему здесь timestamp * 1000 ?
+              expiresAt: new Date(Number(timestamp)),
+            });
+            await ctx.store.save(pack);
+
+            ev.event = new TimestampEndPack({
+              level: pack.level,
+              timestamp: pack.expiresAt,
+            });
+          }
+        } else if (
+          item.address === METAFORCE_ADDRESS
+        ) {
+          const revenueMFS = metaForce.events.RevenueMFS;
+          const revenueStable = metaForce.events.RevenueStable;
+          const lostMoney = metaForce.events.LostMoney;
+
+          let accountId: BigNumber;
+
+          if (evmLog.topics[0] === revenueMFS.topic) {
+            const { fromId, amount } = revenueMFS.decode(evmLog);
+
+            ev.event = new RevenueMFS({
+              from: fromId.toString(),
+              amount: amount.toBigInt(),
+            });
+          } else if (evmLog.topics[0] === revenueStable.topic) {
+            const { fromId, amount } = revenueStable.decode(evmLog);
+
+            ev.event = new RevenueStable({
+              from: fromId.toString(),
+              amount: amount.toBigInt(),
+            })
+          } else if (evmLog.topics[0] === lostMoney.topic) {
+            const { fromId, amount } = lostMoney.decode(evmLog);
+
+            ev.event = new LostMoney({
+              from: fromId.toString(),
+              amount: amount.toBigInt(),
+            })
+          }
+
+          // TODO Сохранить сущность user в event по accountID
+        }
+      }
+    }
+  }
 });
 
