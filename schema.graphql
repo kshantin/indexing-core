@@ -1,7 +1,49 @@
-type Burn @entity {
+type User @entity {
   id: ID!
-  block: Int!
-  address: String! @index
-  value: BigInt!
-  txHash: String!
+  marketingReferrer: User
+  marketingReferrals: [User!]! @derivedFrom(field: "marketingReferrer")
+  depth: Int!
+  directReferralsCount: Int!
+  packs: [Pack!]! @derivedFrom(field: "user")
+  events: [Event!]! @derivedFrom(field: "user")
+}
+
+type Pack @entity @index(fields: ["user", "level"], unique: true) {
+  id: ID!
+  user: User!
+  level: Int!
+  expiresAt: DateTime!
+}
+
+type MarketingReferrerChanged {
+  accountId: User!
+}
+
+type TimestampEndPack {
+  level: Int!
+  timestamp: DateTime!
+}
+
+type RevenueMFS {
+  from: User!
+  amount: BigInt!
+}
+
+type RevenueStable {
+  from: User!
+  amount: BigInt!
+}
+
+type LostMoney {
+  from: User!
+  amount: BigInt!
+}
+
+union Log = MarketingReferrerChanged | TimestampEndPack | RevenueMFS | RevenueStable | LostMoney
+
+type Event @entity {
+  id: ID!
+  user: User!
+  event: Log
+  createdAt: DateTime!
 }
