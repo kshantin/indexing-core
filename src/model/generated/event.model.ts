@@ -19,6 +19,11 @@ export class Event {
     @Column_("jsonb", {transformer: {to: obj => obj == null ? undefined : obj.toJSON(), from: obj => obj == null ? undefined : fromJsonEventLog(obj)}, nullable: true})
     eventLog!: EventLog | undefined | null
 
+    @Index_()
     @Column_("timestamp with time zone", {nullable: false})
     createdAt!: Date
+
+    @Index_()
+    @Column_("text", {nullable: false})
+    txHash!: string
 }
