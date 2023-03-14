@@ -45,5 +45,6 @@ type Event @entity {
   id: ID!
   user: User!
   eventLog: EventLog
-  createdAt: DateTime!
+  createdAt: DateTime! @index
+  txHash: String! @index
 }
