@@ -39,11 +39,11 @@ type LostMoney {
   amount: BigInt!
 }
 
-union Log = MarketingReferrerChanged | TimestampEndPack | RevenueMFS | RevenueStable | LostMoney
+union EventLog = MarketingReferrerChanged | TimestampEndPack | RevenueMFS | RevenueStable | LostMoney
 
 type Event @entity {
   id: ID!
   user: User!
-  event: Log
+  eventLog: EventLog
   createdAt: DateTime!
 }
