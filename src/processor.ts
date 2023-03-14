@@ -24,6 +24,7 @@ import { lookupArchive } from "@subsquid/archive-registry";
 
 const database = new TypeormDatabase();
 const processor = new EvmBatchProcessor()
+  // Contracts deployment block
   .setBlockRange({ from: 31461665 })
   .setDataSource({
     // uncomment and set RPC_ENDPOONT to enable contract state queries.
@@ -106,9 +107,12 @@ processor.run(database, async (ctx) => {
     return user;
   }
 
-  const root = await findOrCreateUser(ROOT_ID.toString());
-  ctx.log.info(root);
-  ctx.log.info("Creating ROOT user");
+  // If ROOT user not exist - create it
+  if (!await ctx.store.findOneBy(User, {id: "1"})) {
+    const root = await findOrCreateUser(ROOT_ID.toString());
+    ctx.log.info("Creating ROOT user:");
+    ctx.log.info(root);
+  }
 
   for (const block of ctx.blocks) {
     for (const item of block.items) {
