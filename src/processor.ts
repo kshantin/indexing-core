@@ -89,30 +89,16 @@ processor.run(database, async (ctx) => {
     if (!user) {
       user = new User({ id, depth: 0, directReferralsCount: 0 });
       await repo.save(user);
-
-      if (id == ROOT_ID.toString()) {
-        const packs = [...Array(LEVELS).keys()].map(
-          (level) => new Pack({
-            id: `${ROOT_ID.toString()}-${level.toString()}`,
-            // TODO - Почему level + 1 ?
-            level: level,
-            user: user!,
-            expiresAt: new Date(4294967294995),
-          })
-        );
-        ctx.log.info("Generate ROOT user packs");
-        await ctx.store.save(packs);
-      }
     }
     return user;
   }
 
   // If ROOT user not exist - create it
-  if (!await ctx.store.findOneBy(User, {id: "1"})) {
-    const root = await findOrCreateUser(ROOT_ID.toString());
-    ctx.log.info("Creating ROOT user:");
-    ctx.log.info(root);
-  }
+  // if (!await ctx.store.findOneBy(User, {id: "1"})) {
+  //   const root = await findOrCreateUser(ROOT_ID.toString());
+  //   ctx.log.info("Creating ROOT user:");
+  //   ctx.log.info(root);
+  // }
 
   for (const block of ctx.blocks) {
     for (const item of block.items) {
@@ -198,6 +184,7 @@ processor.run(database, async (ctx) => {
               id: `${accountId.toString()}-${level.toString()}`,
               level: Number(level),
               user,
+              // Timestamp in milliseconds
               expiresAt: new Date(Number(timestamp) * 1000),
             });
             await ctx.store.save(pack);
