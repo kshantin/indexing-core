@@ -77,14 +77,16 @@ const processor = new EvmBatchProcessor()
 processor.run(database, async (ctx) => {
 
   /**
-   * @notice - findOrCreateEntity 
-   * @doc - https://docs.subsquid.io/tutorials/create-an-ethereum-processing-squid/#managing-the-evm-contract
+   * @notice function for find or create (if not exists) entity in DB
+   * @doc https://docs.subsquid.io/tutorials/create-an-ethereum-processing-squid/#managing-the-evm-contract
+   * @argument id user ID in MetaForce
+   * @returns User TypeORM entity from model
   */
   async function findOrCreateUser(id: string): Promise<User> {
     const mgr: EntityManager = await ctx.store["em"]();
     const repo = mgr.getTreeRepository(User);
 
-    let user = await repo.findOneBy(({ id }));
+    let user = await repo.findOneBy({id});
 
     if (!user) {
       user = new User({ id, depth: 0, directReferralsCount: 0 });
@@ -93,13 +95,7 @@ processor.run(database, async (ctx) => {
     return user;
   }
 
-  // If ROOT user not exist - create it
-  // if (!await ctx.store.findOneBy(User, {id: "1"})) {
-  //   const root = await findOrCreateUser(ROOT_ID.toString());
-  //   ctx.log.info("Creating ROOT user:");
-  //   ctx.log.info(root);
-  // }
-
+  // Start to filter events
   for (const block of ctx.blocks) {
     for (const item of block.items) {
       if (item.kind === "evmLog") {
@@ -107,8 +103,9 @@ processor.run(database, async (ctx) => {
         const {evmLog, transaction} = item;
 
         let event: Event = new Event({
-          id: `${transaction.hash}-${evmLog.index.toString()}`,
+          id: `${evmLog.index.toString()}`,
           createdAt: new Date(block.header.timestamp),
+          txHash: transaction.hash,
         });
 
         let user: User | null;
@@ -133,15 +130,19 @@ processor.run(database, async (ctx) => {
               id: accountId.toString(),
             });
 
+            // If marketing referrer changes to zero
             if (marketingReferrer.isZero()) {
               if (user) {
                 const referrer = user.marketingReferrer;
+
+                // Decrease referrals count
                 if (referrer) {
                   referrer.directReferralsCount--;
                   await repo.save(referrer);
                 }
 
-                ctx.log.info(`removing user ${user.id}`);
+                // Remove user that's now hasn't referrer
+                ctx.log.info(`Removing user ${user.id}`);
                 await repo.remove(user);
               }
               continue;
@@ -155,6 +156,7 @@ processor.run(database, async (ctx) => {
               });
             }
 
+            // Update marketing referrer
             if (!accountId.eq(ROOT_ID)) {
               const referrer = await findOrCreateUser(
                 marketingReferrer.toString()
@@ -166,24 +168,23 @@ processor.run(database, async (ctx) => {
               await repo.save(referrer);
             }
 
-            ctx.log.info(`creating user ${user.id}`);
+            ctx.log.info(`Creating user ${user.id}`);
             await repo.save(user);
 
             event.eventLog = new MarketingReferrerChanged({
               accountId: accountId.toString(),
             });
 
+            // TODO - Почему здесь устанавливается новый пользователь
             user = new User({ id: marketingReferrer.toString() });
-          } else if (
-            evmLog.topics[0] === endPackSet.topic
-          ) {
+          } else if (evmLog.topics[0] === endPackSet.topic) {
             const { accountId, level, timestamp } = endPackSet.decode(evmLog);
 
             user = await findOrCreateUser(accountId.toString());
             const pack = new Pack({
               id: `${accountId.toString()}-${level.toString()}`,
-              level: Number(level),
               user,
+              level: level.toNumber(),
               // Timestamp in milliseconds
               expiresAt: new Date(Number(timestamp) * 1000),
             });
