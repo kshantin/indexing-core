@@ -181,6 +181,8 @@ processor.run(database, async (ctx) => {
             const { accountId, level, timestamp } = endPackSet.decode(evmLog);
 
             user = await findOrCreateUser(accountId.toString());
+
+            // TODO - Пакеты не индексируются ???
             const pack = new Pack({
               id: `${accountId.toString()}-${level.toString()}`,
               user,
