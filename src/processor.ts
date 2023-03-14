@@ -1,8 +1,8 @@
 import { Store, TypeormDatabase } from "@subsquid/typeorm-store";
 import { BatchHandlerContext, EvmBatchProcessor, LogHandlerContext, LogItem } from "@subsquid/evm-processor";
 import {
-  METACORE_ADDRESS,
-  METAFORCE_ADDRESS,
+  CORE_PROXY_ADDRESS,
+  METAFORCE_PROXY_ADDRESS,
   ROOT_ID,
   LEVELS,
 } from "./constants";
@@ -37,7 +37,7 @@ const processor = new EvmBatchProcessor()
 
     archive: lookupArchive("polygon-mumbai") || "https://polygon-mumbai.archive.subsquid.io",
   })
-  .addLog(METACORE_ADDRESS, {
+  .addLog(CORE_PROXY_ADDRESS, {
     filter: [
       [
         core.events.MarketingReferrerChanged.topic,
@@ -54,7 +54,7 @@ const processor = new EvmBatchProcessor()
       },
     },
   })
-  .addLog(METAFORCE_ADDRESS, {
+  .addLog(METAFORCE_PROXY_ADDRESS, {
     filter: [
       [
         metaForce.events.RevenueMFS.topic,
@@ -123,7 +123,7 @@ processor.run(database, async (ctx) => {
 
         let user: User | null;
 
-        if (item.address === METACORE_ADDRESS) {
+        if (item.address === CORE_PROXY_ADDRESS) {
 
           const marketingReferrerChanged = 
             core.events.MarketingReferrerChanged;
@@ -204,7 +204,7 @@ processor.run(database, async (ctx) => {
             });
           }
         } else if (
-          item.address === METAFORCE_ADDRESS
+          item.address === METAFORCE_PROXY_ADDRESS
         ) {
           const revenueMFS = metaForce.events.RevenueMFS;
           const revenueStable = metaForce.events.RevenueStable;
@@ -242,8 +242,8 @@ processor.run(database, async (ctx) => {
         }
 
         event.user = user!;
-        // Logs events
-        ctx.log.info(`Processing Event ${event.id} for User ${event.user.id}`);
+        // Logs events if needed
+        //ctx.log.info(`Processing Event ${event.id} for User ${event.user.id}`);
         await ctx.store.save(event);
       }
     }
