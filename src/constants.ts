@@ -4,4 +4,4 @@ export const METAFORCE_PROXY_ADDRESS = '0x47c58e0d5503ec4ac9474fdce74ebeac71a565
 // uint256 constant LEVELS_COUNT = 9;
 // uint256 constant ROOT_ID = 1;
 export const ROOT_ID = 1;
-export const LEVELS = 9;
+export const LEVELS_COUNT = 9;
