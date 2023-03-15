@@ -1,10 +1,9 @@
-import { Store, TypeormDatabase } from "@subsquid/typeorm-store";
-import { BatchHandlerContext, EvmBatchProcessor, LogHandlerContext, LogItem } from "@subsquid/evm-processor";
+import { TypeormDatabase } from "@subsquid/typeorm-store";
+import { EvmBatchProcessor } from "@subsquid/evm-processor";
 import {
   CORE_PROXY_ADDRESS,
   METAFORCE_PROXY_ADDRESS,
   ROOT_ID,
-  LEVELS,
 } from "./constants";
 import * as core from "./abi/core";
 import * as metaForce from "./abi/meta-force";
