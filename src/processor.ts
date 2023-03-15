@@ -99,7 +99,7 @@ processor.run(database, async (ctx) => {
     for (const item of block.items) {
       if (item.kind === "evmLog") {
 
-        const {evmLog, transaction} = item;
+        const { evmLog, transaction } = item;
 
         let event: Event = new Event({
           id: `${evmLog.index.toString()}`,
@@ -174,14 +174,14 @@ processor.run(database, async (ctx) => {
               accountId: accountId.toString(),
             });
 
-            // TODO - Почему здесь устанавливается новый пользователь
+            // TODO - Почему здесь устанавливается новый пользователь ???
             user = new User({ id: marketingReferrer.toString() });
           } else if (evmLog.topics[0] === endPackSet.topic) {
             const { accountId, level, timestamp } = endPackSet.decode(evmLog);
 
             user = await findOrCreateUser(accountId.toString());
 
-            // TODO - Пакеты не индексируются ???
+            // TODO - Почему пакеты не индексируются ???
             const pack = new Pack({
               id: `${accountId.toString()}-${level.toString()}`,
               user: user,
@@ -189,7 +189,7 @@ processor.run(database, async (ctx) => {
               // Timestamp in milliseconds
               expiresAt: new Date(timestamp.toNumber() * 1000),
             });
-            ctx.log.debug(pack);
+
             await ctx.store.save(pack);
 
             event.eventLog = new TimestampEndPack({
