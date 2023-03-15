@@ -187,8 +187,9 @@ processor.run(database, async (ctx) => {
               user,
               level: level.toNumber(),
               // Timestamp in milliseconds
-              expiresAt: new Date(Number(timestamp) * 1000),
+              expiresAt: new Date(timestamp.toNumber() * 1000),
             });
+            ctx.log.debug(pack);
             await ctx.store.save(pack);
 
             event.eventLog = new TimestampEndPack({
@@ -196,9 +197,7 @@ processor.run(database, async (ctx) => {
               timestamp: pack.expiresAt,
             });
           }
-        } else if (
-          item.address === METAFORCE_PROXY_ADDRESS
-        ) {
+        } else if (item.address === METAFORCE_PROXY_ADDRESS) {
           const revenueMFS = metaForce.events.RevenueMFS;
           const revenueStable = metaForce.events.RevenueStable;
           const lostMoney = metaForce.events.LostMoney;
