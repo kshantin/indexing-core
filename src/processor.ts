@@ -174,7 +174,6 @@ processor.run(database, async (ctx) => {
               accountId: accountId.toString(),
             });
 
-            // TODO - Почему здесь устанавливается новый пользователь ???
             user = new User({ id: marketingReferrer.toString() });
           } else if (evmLog.topics[0] === endPackSet.topic) {
             const { accountId, level, timestamp } = endPackSet.decode(evmLog);
