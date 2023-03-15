@@ -136,7 +136,7 @@ processor.run(database, async (ctx) => {
 
                 // Decrease referrals count
                 if (referrer) {
-                  referrer.directReferralsCount--;
+                  referrer.directReferralsCount -= 1;
                   await repo.save(referrer);
                 }
 
@@ -161,9 +161,9 @@ processor.run(database, async (ctx) => {
                 marketingReferrer.toString()
               );
               user.marketingReferrer = referrer;
-              user.depth = referrer.depth++;
+              user.depth = referrer.depth + 1;
 
-              referrer.directReferralsCount++;
+              referrer.directReferralsCount += 1;
               await repo.save(referrer);
             }
 
@@ -184,7 +184,7 @@ processor.run(database, async (ctx) => {
             // TODO - Пакеты не индексируются ???
             const pack = new Pack({
               id: `${accountId.toString()}-${level.toString()}`,
-              user,
+              user: user,
               level: level.toNumber(),
               // Timestamp in milliseconds
               expiresAt: new Date(timestamp.toNumber() * 1000),
