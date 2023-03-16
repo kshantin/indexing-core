@@ -11,7 +11,7 @@ export class Pack {
     @PrimaryColumn_()
     id!: string
 
-    @ManyToOne_(() => User, {nullable: true})
+    @ManyToOne_(() => User, {nullable: true, onDelete: "CASCADE"})
     user!: User
 
     @Column_("int4", {nullable: false})
