@@ -15,6 +15,8 @@ type Pack @entity @index(fields: ["user", "level"], unique: true) {
   expiresAt: DateTime!
 }
 
+union EventLog = MarketingReferrerChanged | TimestampEndPack | RevenueMFS | RevenueStable | LostMoney
+
 type MarketingReferrerChanged {
   accountId: User!
 }
@@ -25,21 +27,19 @@ type TimestampEndPack {
 }
 
 type RevenueMFS {
-  from: User!
+  from: String!
   amount: BigInt!
 }
 
 type RevenueStable {
-  from: User!
+  from: String!
   amount: BigInt!
 }
 
 type LostMoney {
-  from: User!
+  from: String!
   amount: BigInt!
 }
-
-union EventLog = MarketingReferrerChanged | TimestampEndPack | RevenueMFS | RevenueStable | LostMoney
 
 type Event @entity {
   id: ID!
