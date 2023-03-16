@@ -1,5 +1,5 @@
-module.exports = class Data1678882996761 {
-    name = 'Data1678882996761'
+module.exports = class Data1678967573030 {
+    name = 'Data1678967573030'
 
     async up(db) {
         await db.query(`CREATE TABLE "pack" ("id" character varying NOT NULL, "level" integer NOT NULL, "expires_at" TIMESTAMP WITH TIME ZONE NOT NULL, "user_id" character varying, CONSTRAINT "PK_c125718b999b41a621b0d799e02" PRIMARY KEY ("id"))`)
@@ -10,7 +10,7 @@ module.exports = class Data1678882996761 {
         await db.query(`CREATE INDEX "IDX_08c0745a40c1d4d3458db90c6f" ON "event" ("tx_hash") `)
         await db.query(`CREATE TABLE "user" ("id" character varying NOT NULL, "depth" integer NOT NULL, "direct_referrals_count" integer NOT NULL, "marketing_referrer_id" character varying, CONSTRAINT "PK_cace4a159ff9f2512dd42373760" PRIMARY KEY ("id"))`)
         await db.query(`CREATE INDEX "IDX_8c41abea3b835bacd3f9bb73d0" ON "user" ("marketing_referrer_id") `)
-        await db.query(`ALTER TABLE "pack" ADD CONSTRAINT "FK_1268dbf031f1593428c0e15d333" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`)
+        await db.query(`ALTER TABLE "pack" ADD CONSTRAINT "FK_1268dbf031f1593428c0e15d333" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE NO ACTION`)
         await db.query(`ALTER TABLE "event" ADD CONSTRAINT "FK_e6358bd3df1b2874637dca92bcf" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`)
         await db.query(`ALTER TABLE "user" ADD CONSTRAINT "FK_8c41abea3b835bacd3f9bb73d0c" FOREIGN KEY ("marketing_referrer_id") REFERENCES "user"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`)
     }
