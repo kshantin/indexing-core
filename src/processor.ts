@@ -83,16 +83,19 @@ processor.run(database, async (ctx) => {
   */
   async function findOrCreateUser(id: string): Promise<User> {
     const mgr: EntityManager = await ctx.store["em"]();
-    const repo = mgr.getTreeRepository(User);
+    const repository = mgr.getTreeRepository(User);
 
-    let user = await repo.findOneBy({id});
+    let user = await repository.findOneBy({id});
 
     if (!user) {
       user = new User({ id, depth: 0, directReferralsCount: 0 });
-      await repo.save(user);
+      await repository.save(user);
     }
     return user;
   }
+
+  const packs: Map<string, Pack> = new Map();
+  const events: Map<string, Event> = new Map();
 
   // Start to filter events
   for (const block of ctx.blocks) {
@@ -101,8 +104,10 @@ processor.run(database, async (ctx) => {
 
         const { evmLog, transaction } = item;
 
+        const eventID = `${evmLog.index.toString()}`;
+
         let event: Event = new Event({
-          id: `${evmLog.index.toString()}`,
+          id: eventID,
           createdAt: new Date(block.header.timestamp),
           txHash: transaction.hash,
         });
@@ -120,14 +125,14 @@ processor.run(database, async (ctx) => {
             evmLog.topics[0] === marketingReferrerChanged.topic
           ) {
             const mgr: EntityManager = await ctx.store["em"]();
-            const repo = mgr.getTreeRepository(User);
+            const repository = mgr.getTreeRepository(User);
 
-            const {accountId, marketingReferrer} = 
+            const { accountId, marketingReferrer } = 
               marketingReferrerChanged.decode(evmLog);
 
-            user = await repo.findOneBy({
-              id: accountId.toString(),
-            });
+              user = await repository.findOneBy({
+                id: accountId.toString(),
+              });
 
             // If marketing referrer changes to zero
             if (marketingReferrer.isZero()) {
@@ -137,12 +142,15 @@ processor.run(database, async (ctx) => {
                 // Decrease referrals count
                 if (referrer) {
                   referrer.directReferralsCount -= 1;
-                  await repo.save(referrer);
+                  await repository.save(referrer);
                 }
 
-                // Remove user that's now hasn't referrer
-                ctx.log.info(`Removing user ${user.id}`);
-                await repo.remove(user);
+                /**
+                 * @notice Пимечание из задачи:
+                 * если marketingReferrer == 0x0, то пользователь удаляется из дерева.
+                 */
+                ctx.log.info(`Removing user: ${user.id} with no marketingReferrer`);
+                await repository.remove(user);
               }
               continue;
             }
@@ -164,36 +172,46 @@ processor.run(database, async (ctx) => {
               user.depth = referrer.depth + 1;
 
               referrer.directReferralsCount += 1;
-              await repo.save(referrer);
+              await repository.save(referrer);
             }
 
-            ctx.log.info(`Creating user ${user.id}`);
-            await repo.save(user);
+            /**
+             * @notice Примечание из задачи
+             * Примечание для события MarketingReferrerChanged:
+             * accountId – всегда новый пользователь в дереве.
+             */
+            ctx.log.info(`Change user in tree: ${user.id}`);
+            await repository.save(user);
 
             event.eventLog = new MarketingReferrerChanged({
               accountId: accountId.toString(),
             });
 
             user = new User({ id: marketingReferrer.toString() });
+
           } else if (evmLog.topics[0] === endPackSet.topic) {
             const { accountId, level, timestamp } = endPackSet.decode(evmLog);
 
             user = await findOrCreateUser(accountId.toString());
 
-            // TODO - Почему пакеты не индексируются ???
+            const packID = `${accountId.toString()}-${level.toString()}`;
+            const packLevel = level.toNumber();
+
+            // Timestamp in milliseconds
+            const packExpiresAt = new Date(timestamp.toNumber() * 1000);
+
             const pack = new Pack({
-              id: `${accountId.toString()}-${level.toString()}`,
+              id: packID,
               user: user,
-              level: level.toNumber(),
-              // Timestamp in milliseconds
-              expiresAt: new Date(timestamp.toNumber() * 1000),
+              level: packLevel,
+              expiresAt: packExpiresAt,
             });
 
             await ctx.store.save(pack);
 
             event.eventLog = new TimestampEndPack({
-              level: pack.level,
-              timestamp: pack.expiresAt,
+              level: packLevel,
+              timestamp: packExpiresAt,
             });
           }
         } else if (item.address === METAFORCE_PROXY_ADDRESS) {
@@ -234,10 +252,21 @@ processor.run(database, async (ctx) => {
 
         event.user = user!;
         // Logs events if needed
-        //ctx.log.info(`Processing Event ${event.id} for User ${event.user.id}`);
-        await ctx.store.save(event);
+        // ctx.log.info(`Processing Event ${event.id} for User ${event.user.id}`);
+
+        // TODO - indexing events with empty eventLog
+        await ctx.store.save(event)
+        // Push event to Map
+        // events.set(eventID, event!);
       }
     }
   }
+
+  // Save events
+  // await ctx.store.save([...events.values()]);
+
+  // TODO - don't save packs when using Map objects to save
+  // Save packs
+  // await ctx.store.save([...packs.values()])
 });
 
