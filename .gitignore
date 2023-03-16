@@ -2,7 +2,7 @@
 /lib
 /builds
 #db migrations
-#/db
+/db
 
 /**Versions.json
 
