@@ -1,8 +1,8 @@
 /node_modules
 /lib
 /builds
-#db migrations
-/db
+# db migrations
+/db/
 
 /**Versions.json
 
