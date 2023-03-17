@@ -1,4 +1,3 @@
-import { type } from "os";
 import {ObjectType, Field, Resolver, Query, Arg} from "type-graphql";
 import { EntityManager } from "typeorm";
 import { User } from "../model";
