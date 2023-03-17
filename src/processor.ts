@@ -94,9 +94,6 @@ processor.run(database, async (ctx) => {
     return user;
   }
 
-  const packs: Map<string, Pack> = new Map();
-  const events: Map<string, Event> = new Map();
-
   // Start to filter events
   for (const block of ctx.blocks) {
     for (const item of block.items) {
@@ -236,7 +233,7 @@ processor.run(database, async (ctx) => {
             event.eventLog = new RevenueStable({
               from: fromId.toString(),
               amount: amount.toBigInt(),
-            })
+            });
           } else if (evmLog.topics[0] === lostMoney.topic) {
             const { fromId, accountId, amount } = lostMoney.decode(evmLog);
             userAccountId = accountId;
@@ -244,29 +241,17 @@ processor.run(database, async (ctx) => {
             event.eventLog = new LostMoney({
               from: fromId.toString(),
               amount: amount.toBigInt(),
-            })
+            });
           }
 
           user = await findOrCreateUser(userAccountId!.toString());
         }
 
         event.user = user!;
-        // Logs events if needed
-        // ctx.log.info(`Processing Event ${event.id} for User ${event.user.id}`);
 
-        // TODO - indexing events with empty eventLog
-        await ctx.store.save(event)
-        // Push event to Map
-        // events.set(eventID, event!);
+        await ctx.store.save(event);
       }
     }
   }
-
-  // Save events
-  // await ctx.store.save([...events.values()]);
-
-  // TODO - don't save packs when using Map objects to save
-  // Save packs
-  // await ctx.store.save([...packs.values()])
 });
 
