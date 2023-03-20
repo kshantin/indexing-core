@@ -1,8 +1,9 @@
-import {Entity as Entity_, Column as Column_, PrimaryColumn as PrimaryColumn_, ManyToOne as ManyToOne_, Index as Index_, OneToMany as OneToMany_} from "typeorm"
+import {Entity as Entity_, Column as Column_, PrimaryColumn as PrimaryColumn_, ManyToOne as ManyToOne_, Index as Index_, OneToMany as OneToMany_, Tree, TreeParent, TreeChildren} from "typeorm"
 import {Pack} from "./pack.model"
 import {Event} from "./event.model"
 
 @Entity_()
+@Tree("closure-table")
 export class User {
     constructor(props?: Partial<User>) {
         Object.assign(this, props)
@@ -11,11 +12,10 @@ export class User {
     @PrimaryColumn_()
     id!: string
 
-    @Index_()
-    @ManyToOne_(() => User, {nullable: true})
+    @TreeParent()
     marketingReferrer!: User | undefined | null
 
-    @OneToMany_(() => User, e => e.marketingReferrer)
+    @TreeChildren()
     marketingReferrals!: User[]
 
     @Column_("int4", {nullable: false})
