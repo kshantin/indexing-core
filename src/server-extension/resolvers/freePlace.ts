@@ -35,7 +35,7 @@ export class TreeNodeResolver {
   ): Promise<SearchFreePlace> {
 
     const manager = await this.tx();
-    
+
     // TODO - add PostgreSQL query
     const searchQuery = `
     select 
@@ -72,6 +72,10 @@ export class TreeNodeResolver {
     const queryResult = await manager
     .getTreeRepository(User)
     .query(searchQuery);
+
+    if (queryResult.length === 0) {
+      return new SearchFreePlace({});
+    }
     
     const res = queryResult.pop();
 
