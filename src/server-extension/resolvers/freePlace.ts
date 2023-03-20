@@ -1,6 +1,6 @@
 import {ObjectType, Field, Resolver, Query, Arg} from "type-graphql";
 import { EntityManager } from "typeorm";
-import { User } from "../model";
+import { User } from "../../model";
 
 @ObjectType()
 export class SearchFreePlace {
@@ -35,7 +35,37 @@ export class TreeNodeResolver {
   ): Promise<SearchFreePlace> {
 
       // TODO - add PostgreSQL query
-      const searchQuery = ``;
+      const searchQuery = `
+      select 
+        u.id as freePlace,  
+        (count(*) - sum(
+          case when (
+            expires_at + '1 month'::interval < now()
+          ) then 1 else 0 end
+        ) <= 0) as replace 
+      from 
+        user_closure as uc 
+        join public.user as u on u.id = uc.id_descendant
+        join pack as p on p.user_id = u.id 
+      where 
+        uc.id_ancestor = '${referrerId.toString()}'
+      group by 
+        u.id 
+      having
+        count(*) = sum(
+          case when (
+            expires_at + '1 month'::interval < now()
+          ) then 1 else 0 end
+        ) 
+        or u.direct_referrals_count < 2 
+      order by 
+        u.depth, sum(
+          case when (
+            expires_at + '1 month'::interval < now()
+          ) then 1 else 0 end
+        ) desc, u.direct_referrals_count
+      limit 1;
+      `;
 
       const queryResult = await this.manager
       .getTreeRepository(User)
