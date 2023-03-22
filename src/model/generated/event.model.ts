@@ -13,7 +13,7 @@ export class Event {
     id!: string
 
     @Index_()
-    @ManyToOne_(() => User, {nullable: true})
+    @ManyToOne_(() => User, {nullable: true, onDelete: "CASCADE"})
     user!: User
 
     @Column_("jsonb", {transformer: {to: obj => obj == null ? undefined : obj.toJSON(), from: obj => obj == null ? undefined : fromJsonEventLog(obj)}, nullable: true})
